@@ -108,6 +108,7 @@ class WeiboProvider(object):
             'gender': data.get('gender'),
             'displayName': data['screen_name'],
             'preferredUsername': data['name'],
+            'avatar': data['avatar_large']
         }
 
         cred = {'oauthAccessToken': access_token}
