@@ -13,14 +13,30 @@ from velruse.api import (
     register_provider,
 )
 from velruse.exceptions import ThirdPartyFailure
+from velruse.settings import ProviderSettings
 from velruse.utils import flat_url
 
 
 class QQAuthenticationComplete(AuthenticationComplete):
     """QQ auth complete"""
 
+
 def includeme(config):
     config.add_directive('add_qq_login', add_qq_login)
+    config.add_directive('add_qq_login_from_settings',
+                         add_qq_login_from_settings)
+
+
+def add_qq_login_from_settings(config, prefix='velruse.qq.'):
+    settings = config.registry.settings
+    p = ProviderSettings(settings, prefix)
+    p.update('consumer_key', required=True)
+    p.update('consumer_secret', required=True)
+    p.update('scope')
+    p.update('login_path')
+    p.update('callback_path')
+    config.add_qq_login(**p.kwargs)
+
 
 def add_qq_login(config,
                  consumer_key,
@@ -44,6 +60,7 @@ def add_qq_login(config,
 
     register_provider(config, name, provider)
 
+
 class QQProvider(object):
     def __init__(self, name, consumer_key, consumer_secret, scope):
         self.name = name
@@ -63,7 +80,6 @@ class QQProvider(object):
                           response_type='code',
                           redirect_uri=request.route_url(self.callback_route))
         return HTTPFound(location=gh_url)
-
 
     def callback(self, request):
         """Process the qq redirect"""

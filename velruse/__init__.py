@@ -1,29 +1,23 @@
-from velruse.api import (
-    AuthenticationComplete,
-    AuthenticationDenied,
-    login_url,
-)
+class AuthenticationComplete(object):
+    """ An AuthenticationComplete context object"""
 
-from velruse.exceptions import (
-    CSRFError,
-    MissingParameter,
-    ThirdPartyFailure,
-    VelruseException,
-)
+    def __init__(self, profile=None, credentials=None):
+        """Create an AuthenticationComplete object with user data"""
+        self.profile = profile
+        self.credentials = credentials
 
-def includeme(config):
-    config.include('velruse.providers.bitbucket')
-    config.include('velruse.providers.douban')
-    config.include('velruse.providers.facebook')
-    config.include('velruse.providers.github')
-    config.include('velruse.providers.google')
-    config.include('velruse.providers.lastfm')
-    config.include('velruse.providers.linkedin')
-    config.include('velruse.providers.live')
-    config.include('velruse.providers.openid')
-    config.include('velruse.providers.qq')
-    config.include('velruse.providers.renren')
-    config.include('velruse.providers.taobao')
-    config.include('velruse.providers.twitter')
-    config.include('velruse.providers.weibo')
-    config.include('velruse.providers.yahoo')
+
+class AuthenticationDenied(object):
+    """ An AuthenticationDenied context object. Used when the provider
+    returned successfully but without proper credentials. This may be
+    the case if the user cancels the login."""
+
+    def __init__(self, reason=None):
+        self.reason = reason
+
+
+def login_url(request, name):
+    """ Generate the login URL for a provider."""
+    registry = request.registry
+    provider = registry.velruse_providers[name]
+    return request.route_url(provider.login_route)

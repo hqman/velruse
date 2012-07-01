@@ -18,6 +18,7 @@ from velruse.api import (
     register_provider,
 )
 from velruse.exceptions import ThirdPartyFailure
+from velruse.settings import ProviderSettings
 
 
 REQUEST_URL = 'https://bitbucket.org/api/1.0/oauth/request_token/'
@@ -25,11 +26,26 @@ ACCESS_URL = 'https://bitbucket.org/api/1.0/oauth/access_token/'
 USER_URL = 'https://bitbucket.org/api/1.0/user'
 SIGMETHOD = oauth.SignatureMethod_HMAC_SHA1()
 
+
 class BitbucketAuthenticationComplete(AuthenticationComplete):
     """Bitbucket auth complete"""
 
+
 def includeme(config):
     config.add_directive('add_bitbucket_login', add_bitbucket_login)
+    config.add_directive('add_bitbucket_login_from_settings',
+                         add_bitbucket_login_from_settings)
+
+
+def add_bitbucket_login_from_settings(config, prefix='velruse.bitbucket.'):
+    settings = config.registry.settings
+    p = ProviderSettings(settings, prefix)
+    p.update('consumer_key', required=True)
+    p.update('consumer_secret', required=True)
+    p.update('login_path')
+    p.update('callback_path')
+    config.add_bitbucket_login(**p.kwargs)
+
 
 def add_bitbucket_login(config,
                         consumer_key,
@@ -51,6 +67,7 @@ def add_bitbucket_login(config,
                      factory=provider.callback)
 
     register_provider(config, name, provider)
+
 
 class BitbucketProvider(object):
     def __init__(self, name, consumer_key, consumer_secret):

@@ -14,14 +14,29 @@ from velruse.api import (
     register_provider,
 )
 from velruse.exceptions import ThirdPartyFailure
+from velruse.settings import ProviderSettings
 from velruse.utils import flat_url
 
 
 class TaobaoAuthenticationComplete(AuthenticationComplete):
     """Taobao auth complete"""
 
+
 def includeme(config):
     config.add_directive('add_taobao_login', add_taobao_login)
+    config.add_directive('add_taobao_login_from_settings',
+                         add_taobao_login_from_settings)
+
+
+def add_taobao_login_from_settings(config, prefix='velruse.taobao.'):
+    settings = config.registry.settings
+    p = ProviderSettings(settings, prefix)
+    p.update('consumer_key', required=True)
+    p.update('consumer_secret', required=True)
+    p.update('login_path')
+    p.update('callback_path')
+    config.add_taobao_login(**p.kwargs)
+
 
 def add_taobao_login(config,
                      consumer_key,
@@ -44,6 +59,7 @@ def add_taobao_login(config,
 
     register_provider(config, name, provider)
 
+
 class TaobaoProvider(object):
     def __init__(self, name, consumer_key, consumer_secret):
         self.name = name
@@ -60,7 +76,6 @@ class TaobaoProvider(object):
                           response_type='code',
                           redirect_uri=request.route_url(self.callback_route))
         return HTTPFound(location=gh_url)
-
 
     def callback(self, request):
         """Process the taobao redirect"""

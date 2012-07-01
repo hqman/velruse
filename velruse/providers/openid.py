@@ -71,11 +71,14 @@ trans_dict = dict(
 
 attributes = ax_attributes
 
+
 class OpenIDAuthenticationComplete(AuthenticationComplete):
     """OpenID auth complete"""
 
+
 def includeme(config):
     config.add_directive('add_openid_login', add_openid_login)
+
 
 def add_openid_login(config,
                      realm=None,
@@ -102,6 +105,7 @@ def add_openid_login(config,
 
     register_provider(config, name, provider)
 
+
 class OpenIDConsumer(object):
     """OpenID Consumer base class
 
@@ -115,13 +119,14 @@ class OpenIDConsumer(object):
                  context=AuthenticationComplete):
         self.openid_store = storage
         self.name = name
-        self.realm = realm
         self.context = context
+        self.realm_override = realm
 
         self.login_route = 'velruse.%s-url' % name
         self.callback_route = 'velruse.%s-callback' % name
 
     _openid_store = None
+
     def _get_openid_store(self):
         if self._openid_store is None:
             from openid.store.memstore import MemoryStore
@@ -132,6 +137,11 @@ class OpenIDConsumer(object):
         self._openid_store = val
 
     openid_store = property(_get_openid_store, _set_openid_store)
+
+    def _get_realm(self, request):
+        if self.realm_override is not None:
+            return self.realm_override
+        return request.host_url
 
     def _lookup_identifier(self, request, identifier):
         """Extension point for inherited classes that want to change or set
@@ -200,6 +210,8 @@ class OpenIDConsumer(object):
         # Update the authrequest
         self._update_authrequest(request, authrequest)
 
+        realm = self._get_realm(request)
+        # TODO: add a csrf check to the return_to URL
         return_to = request.route_url(self.callback_route)
         request.session['openid_session'] = openid_session
 
@@ -208,14 +220,14 @@ class OpenIDConsumer(object):
         if authrequest.shouldSendRedirect():
             log.debug('About to initiate OpenID redirect')
             redirect_url = authrequest.redirectURL(
-                realm=self.realm,
+                realm=realm,
                 return_to=return_to,
                 immediate=False)
             return HTTPFound(location=redirect_url)
         else:
             log.debug('About to initiate OpenID POST')
             html = authrequest.htmlMarkup(
-                realm=self.realm,
+                realm=realm,
                 return_to=return_to,
                 immediate=False)
             return Response(body=html)
@@ -270,6 +282,7 @@ class OpenIDConsumer(object):
         else:
             raise ThirdPartyFailure("OpenID failed.")
 
+
 class AttribAccess(object):
     """Uniform attribute accessor for Simple Reg and Attribute Exchange
     values"""
@@ -295,6 +308,7 @@ class AttribAccess(object):
             return None
 
         return self.sreg_resp.get(key)
+
 
 def extract_openid_data(identifier, sreg_resp, ax_resp):
     """Extract the OpenID Data from Simple Reg and AX data

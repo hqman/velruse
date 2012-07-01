@@ -13,14 +13,30 @@ from velruse.api import (
     register_provider,
 )
 from velruse.exceptions import ThirdPartyFailure
+from velruse.settings import ProviderSettings
 from velruse.utils import flat_url
 
 
 class LiveAuthenticationComplete(AuthenticationComplete):
     """Live Connect auth complete"""
 
+
 def includeme(config):
     config.add_directive('add_live_login', add_live_login)
+    config.add_directive('add_live_login_from_settings',
+                         add_live_login_from_settings)
+
+
+def add_live_login_from_settings(config, prefix='velruse.live.'):
+    settings = config.registry.settings
+    p = ProviderSettings(settings, prefix)
+    p.update('consumer_key', required=True)
+    p.update('consumer_secret', required=True)
+    p.update('scope')
+    p.update('login_path')
+    p.update('callback_path')
+    config.add_live_login(**p.kwargs)
+
 
 def add_live_login(config,
                    consumer_key,
@@ -44,6 +60,7 @@ def add_live_login(config,
 
     register_provider(config, name, provider)
 
+
 class LiveProvider(object):
     def __init__(self, name, consumer_key, consumer_secret, scope):
         self.name = name
@@ -63,7 +80,6 @@ class LiveProvider(object):
                           redirect_uri=request.route_url(self.callback_route),
                           response_type="code")
         return HTTPFound(location=fb_url)
-
 
     def callback(self, request):
         """Process the Live redirect"""

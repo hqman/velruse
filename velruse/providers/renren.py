@@ -12,14 +12,30 @@ from velruse.api import (
     register_provider,
 )
 from velruse.exceptions import ThirdPartyFailure
+from velruse.settings import ProviderSettings
 from velruse.utils import flat_url
 
 
 class RenrenAuthenticationComplete(AuthenticationComplete):
     """Renren auth complete"""
 
+
 def includeme(config):
     config.add_directive('add_renren_login', add_renren_login)
+    config.add_directive('add_renren_login_from_settings',
+                         add_renren_login_from_settings)
+
+
+def add_renren_login_from_settings(config, prefix='velruse.renren.'):
+    settings = config.registry.settings
+    p = ProviderSettings(settings, prefix)
+    p.update('consumer_key', required=True)
+    p.update('consumer_secret', required=True)
+    p.update('scope')
+    p.update('login_path')
+    p.update('callback_path')
+    config.add_renren_login(**p.kwargs)
+
 
 def add_renren_login(config,
                      consumer_key,
@@ -43,6 +59,7 @@ def add_renren_login(config,
 
     register_provider(config, name, provider)
 
+
 class RenrenProvider(object):
     def __init__(self, name, consumer_key, consumer_secret, scope):
         self.name = name
@@ -62,7 +79,6 @@ class RenrenProvider(object):
                        response_type='code',
                        redirect_uri=request.route_url(self.callback_route))
         return HTTPFound(url)
-
 
     def callback(self, request):
         """Process the renren redirect"""
